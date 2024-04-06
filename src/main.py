@@ -1,6 +1,7 @@
 from flet import *
 import sounddevice as sd
 import scipy.io.wavfile as wav
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 import requests
 
 BASE_URL = "http://127.0.0.1:8000"
@@ -21,9 +22,18 @@ def main(current_page: Page):
         sd.wait()
         file_name = "recording.wav"
         wav.write(file_name, freq, recording)
-        url = f'{BASE_URL}/api/upload-audio/'
-        files = {'file': ('recording.wav', open(file_name, 'rb'), 'audio/wav')}
-        response = requests.post(url, files=files)
+
+        # Create a MultipartEncoder object with the file
+        multipart_data = MultipartEncoder(
+            fields={'file': ('recording.wav', open(file_name, 'rb'), 'audio/wav')}
+        )
+
+        # Set the Content-Type header to the encoder's content type
+        headers = {'Content-Type': multipart_data.content_type}
+
+        # Send the request with the MultipartEncoder data
+        response = requests.post(BASE_URL + "/api/upload-audio/", data=multipart_data, headers=headers)
+
         print(response.status_code)
 
     current_page.add(

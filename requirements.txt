@@ -9,3 +9,5 @@ flet
 wavio
 scipy
 pandas
+django
+djangorestframework

@@ -3,7 +3,7 @@ import sounddevice as sd
 import scipy.io.wavfile as wav
 import requests
 
-BASE_URL = "http://127.0.0.1:8000/"
+BASE_URL = "http://127.0.0.1:8000"
 
 
 def main(current_page: Page):
@@ -22,7 +22,7 @@ def main(current_page: Page):
         file_name = "recording.wav"
         wav.write(file_name, freq, recording)
         url = f'{BASE_URL}/api/upload-audio/'
-        files = {'file': open(file_name, 'rb')}
+        files = {'file': ('recording.wav', open(file_name, 'rb'), 'audio/wav')}
         response = requests.post(url, files=files)
         print(response.status_code)
 

@@ -1,13 +1,19 @@
 from flet import *
+import flet.fastapi as flet_fastapi
 import sounddevice as sd
 import scipy.io.wavfile as wav
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 import requests
+import mimetypes
+import logging
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://127.0.0.1:8001"
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
-def main(current_page: Page):
+async def main(current_page: Page):
     def on_record_click(e):
         current_page.snack_bar = SnackBar(
             Text("Começe a gravar agora...", size=20, weight=FontWeight.BOLD),
@@ -23,18 +29,33 @@ def main(current_page: Page):
         file_name = "recording.wav"
         wav.write(file_name, freq, recording)
 
-        # Create a MultipartEncoder object with the file
-        multipart_data = MultipartEncoder(
-            fields={'file': ('recording.wav', open(file_name, 'rb'), 'audio/wav')}
-        )
+        # Read file content
+        with open(file_name, 'rb') as f:
+            file_content = f.read()
 
-        # Set the Content-Type header to the encoder's content type
-        headers = {'Content-Type': multipart_data.content_type}
+        # Determine file mime type
+        mime_type, _ = mimetypes.guess_type(file_name)
+        mime_type = mime_type or 'application/octet-stream'
 
-        # Send the request with the MultipartEncoder data
-        response = requests.post(BASE_URL + "/api/upload-audio/", data=multipart_data, headers=headers)
+        headers = {'Content-Disposition': f'form-data; name="file"; filename="{file_name}"'}
+        # Construct multipart/form-data payload
+        files = {
+            'file': (
+                file_name,
+                file_content,
+                mime_type,
+                headers
+            )
+        }
 
-        print(response.status_code)
+        # Log the request details
+        logger.debug("Sending POST request to: %s", BASE_URL + "/api/upload-audio/")
+        logger.debug("Request headers: %s", headers)
+
+        # Send the request with the constructed payload
+        response = requests.post(BASE_URL + "/api/upload-audio/", files=files, headers=headers)
+
+        logger.debug("Response status code: %d", response.status_code)
 
     current_page.add(
         Column([
@@ -46,4 +67,4 @@ def main(current_page: Page):
     )
 
 
-app(target=main)
+app = flet_fastapi.app(main)
